@@ -493,14 +493,19 @@ const pick = (arr) => arr[(Math.random() * arr.length) | 0];
 const STICKER_SRC = './sticker.webp';
 const STICKER_FALLBACK = './sticker.png';
 
+const MAX_STICKERS = 20;
 const stickers = [];
 let stickerRAF = 0;
-let stickerTimer = 0;
 
 function spawnSticker(x, y, vx, vy, size, isFloater = false){
+  while (stickers.length >= MAX_STICKERS){
+    const old = stickers.shift();
+    if (old && old.el) old.el.remove();
+  }
+
   const img = document.createElement('img');
   img.className = 'pop-sticker';
-  img.src = STICKER_SRC + '?t=' + Date.now();
+  img.src = STICKER_SRC;
   img.onerror = () => {
     if (!img.src.includes('sticker.png')) img.src = STICKER_FALLBACK;
   };
@@ -515,39 +520,39 @@ function spawnSticker(x, y, vx, vy, size, isFloater = false){
     y,
     vx,
     vy,
-    scale: 0.15,
+    scale: 0.2,
     targetScale: 1.0,
-    rot: rand(-35, 35),
-    vrot: rand(-4.5, 4.5),
+    rot: rand(-25, 25),
+    vrot: rand(-3, 3),
     age: 0,
-    life: isFloater ? rand(5.5, 8.5) : rand(4.0, 6.0),
-    decay: isFloater ? 0.995 : 0.991,
-    gravity: rand(0.14, 0.26)
+    life: isFloater ? rand(3.5, 5.0) : rand(2.8, 4.0),
+    decay: 0.985,
+    gravity: rand(0.18, 0.28)
   });
 }
 
-function burstStickers(cx, cy, count = 48){
+function burstStickers(cx, cy, count = 12){
   const W = innerWidth;
-  const scale = Math.max(0.7, Math.min(1.3, W / 550));
+  const scale = Math.max(0.65, Math.min(1.1, W / 500));
   for (let i = 0; i < count; i++){
-    const ang = Math.random() * Math.PI * 2;
-    const speed = rand(9, 26) * scale;
+    const ang = (i / count) * Math.PI * 2 + rand(-0.3, 0.3);
+    const speed = rand(7, 18) * scale;
     const vx = Math.cos(ang) * speed;
-    const vy = Math.sin(ang) * speed - rand(4, 9);
-    const size = rand(75, 155) * scale;
+    const vy = Math.sin(ang) * speed - rand(4, 8);
+    const size = rand(70, 115) * scale;
     spawnSticker(cx - size / 2, cy - size / 2, vx, vy, size);
   }
 }
 
-function rainStickers(count = 20){
+function rainStickers(count = 6){
   const W = innerWidth;
-  const scale = Math.max(0.7, Math.min(1.3, W / 550));
+  const scale = Math.max(0.65, Math.min(1.1, W / 500));
   for (let i = 0; i < count; i++){
     const x = Math.random() * W;
-    const y = -120 - Math.random() * 200;
-    const vx = rand(-3, 3);
-    const vy = rand(4, 9) * scale;
-    const size = rand(70, 140) * scale;
+    const y = -80 - Math.random() * 100;
+    const vx = rand(-2, 2);
+    const vy = rand(3, 6) * scale;
+    const size = rand(65, 100) * scale;
     spawnSticker(x, y, vx, vy, size, true);
   }
 }
@@ -568,19 +573,19 @@ function stickerTick(){
     s.age += 1 / 60;
 
     if (s.scale < s.targetScale){
-      s.scale = Math.min(s.targetScale, s.scale + 0.16);
+      s.scale = Math.min(s.targetScale, s.scale + 0.18);
     }
 
-    const fadeStart = s.life - 1.2;
+    const fadeStart = s.life - 0.8;
     let opacity = 1;
     if (s.age > fadeStart){
-      opacity = Math.max(0, 1 - (s.age - fadeStart) / 1.2);
+      opacity = Math.max(0, 1 - (s.age - fadeStart) / 0.8);
     }
 
     s.el.style.opacity = opacity.toFixed(2);
     s.el.style.transform = `translate3d(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px, 0) rotate(${s.rot.toFixed(1)}deg) scale(${s.scale.toFixed(2)})`;
 
-    if (opacity <= 0 || s.y > H + 200 || s.x < -200 || s.x > W + 200){
+    if (opacity <= 0 || s.y > H + 120 || s.x < -140 || s.x > W + 140){
       s.el.remove();
       stickers.splice(i, 1);
     }
@@ -597,37 +602,18 @@ function startStickerStorm(){
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
 
-  // Wave 1: Massive center explosion
-  burstStickers(cx, cy, 46);
+  // Wave 1: Clean, satisfying fountain burst of 12 stickers
+  burstStickers(cx, cy, 12);
 
-  // Wave 2: Left and right cannon explosions
+  // Wave 2: Gentle floater shower of 6 stickers
   setTimeout(() => {
-    burstStickers(innerWidth * 0.15, innerHeight * 0.65, 26);
-    burstStickers(innerWidth * 0.85, innerHeight * 0.65, 26);
-  }, 220);
-
-  // Wave 3: Heavy top cascade
-  setTimeout(() => {
-    rainStickers(36);
-  }, 500);
-
-  // Wave 4: Continuous celebratory shower
-  let elapsed = 0;
-  clearInterval(stickerTimer);
-  stickerTimer = setInterval(() => {
-    elapsed += 350;
     rainStickers(6);
-    if (elapsed >= 14000){
-      clearInterval(stickerTimer);
-      stickerTimer = 0;
-    }
   }, 350);
 
   if (!stickerRAF) stickerRAF = requestAnimationFrame(stickerTick);
 }
 
 function stopStickers(){
-  clearInterval(stickerTimer); stickerTimer = 0;
   cancelAnimationFrame(stickerRAF); stickerRAF = 0;
   stickers.forEach(s => s.el.remove());
   stickers.length = 0;
@@ -732,9 +718,13 @@ function reset(){
   noBtn.style.top = '';
 }
 
+let lastTap = 0;
 window.addEventListener('pointerdown', (e) => {
   if (catState === 'happy'){
-    burstStickers(e.clientX, e.clientY, 8);
+    const now = Date.now();
+    if (now - lastTap < 300) return;
+    lastTap = now;
+    burstStickers(e.clientX, e.clientY, 3);
     if (!stickerRAF) stickerRAF = requestAnimationFrame(stickerTick);
   }
 });

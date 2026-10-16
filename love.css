@@ -543,9 +543,9 @@ body{
   user-select:none;
   -webkit-user-drag:none;
   will-change:transform, opacity;
-  filter:drop-shadow(0 6px 18px rgba(226,59,78,.45));
-  image-rendering:-webkit-optimize-contrast;
-  border-radius:10px;
+  transform:translateZ(0);
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.16));
+  border-radius:8px;
 }
 
 .hero-sticker{
